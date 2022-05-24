@@ -1,11 +1,7 @@
-// import { axiosInstance, beUrl } from "../config.js"
 import React from 'react';
-import { StyleSheet, View, Text, LogBox } from 'react-native';
-import { TextInput } from 'react-native-paper';
-import { utils } from '@react-native-firebase/app';
-import vision from '@react-native-firebase/ml-vision';
-// LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
-// LogBox.ignoreAllLogs(); //Ignore all log notifications
+import axios from "axios";
+import { StyleSheet, View, Text, ActivityIndicator, SafeAreaView, ScrollView, Pressable } from 'react-native';
+import { TextInput, Button } from 'react-native-paper';
 
 const styles = StyleSheet.create({
     container: {
@@ -43,33 +39,66 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1,
-        backgroundColor: 'transparent'
+        backgroundColor: 'transparent',
     },
 });
 
 export default function Home() {
 
-    // React.useEffect(() => {
-    //     AppState.addEventListener("change", _handleAppStateChange);
+    const [artist, setArtist] = React.useState("");
+    const [song, setSong] = React.useState("");
+    const [lyrics, setLyrics] = React.useState("");
+    const [isLoading, setIsLoading] = React.useState(false);
 
-    //     return () => {
-    //         AppState.removeEventListener("change", _handleAppStateChange);
-    //     };
-    // }, []);
+    const url = "https://api.lyrics.ovh/v1/{artist}/{song}"
 
-    // const processImage = async (localPath) => {
-    //     const labels = await vision().cloudImageLabelerProcessImage(localPath);
-
-    //     labels.forEach(label => {
-    //         console.log('Service labelled the image: ', label.text);
-    //         console.log('Confidence in the label: ', label.confidence);
-    //     });
-    // }
+    const searchLyrics = () => {
+        setIsLoading(true)
+        axios.get(url.replace("{artist}", artist).replace("{song}", song))
+            .then(response => {
+                setIsLoading(false)
+                setLyrics(response.data.lyrics)
+            }).catch(error => {
+                setIsLoading(false)
+                setLyrics("LYRICS NOT FOUND")
+                console.log(error)
+            });
+    }
 
     return (
         <View style={styles.container}>
-            <Text style={{ marginTop: 30, fontSize: 30, fontWeight: "bold" }}>Benvenuto!</Text>
-            <Text style={{ marginTop: 40, fontSize: 15 }}>Seleziona la sezione che vuoi visitare</Text>
+            <Text style={{ marginTop: 30, fontSize: 20, fontWeight: "bold", textAlign: "center" }}>Find the lyrics of your song!</Text>
+            <View style={{ width: "80%", marginTop: 20 }}>
+                <TextInput
+                    label="artist"
+                    mode="outlined"
+                    value={artist}
+                    onChangeText={inputArtist => setArtist(inputArtist)}
+                />
+                <TextInput
+                    label="song"
+                    mode="outlined"
+                    value={song}
+                    onChangeText={inputSong => setSong(inputSong)}
+                />
+            </View>
+            <Button style={{ marginTop: 20 }} disabled={artist === "" || song === ""} onPress={() => {
+                searchLyrics()
+            }}>Search</Button>
+            {
+                !isLoading ? null : <View style={styles.overlayLoadingContainer}>
+                    <ActivityIndicator size="large" color="green" animating={true} />
+                </View>
+            }
+            <SafeAreaView style={{ maxWidth: 300, maxHeight: 400, alignItems: "center" }}>
+                <ScrollView showsVerticalScrollIndicator={false} persistentScrollbar={true}>
+                    <Pressable style={{ width: 300, alignItems: "center" }}>
+                        <View style={{ maxWidth: 300 }}>
+                            <Text>{lyrics}</Text>
+                        </View>
+                    </Pressable>
+                </ScrollView>
+            </SafeAreaView>
         </View>
     );
 }
